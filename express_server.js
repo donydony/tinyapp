@@ -7,6 +7,19 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
 const generateRandomString = function() {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -34,11 +47,13 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
+app.get("/register", (req, res) => {
+  res.render("urls_registration");
+});
+
 app.post("/urls", (req, res) => {
   const newID = generateRandomString();
   urlDatabase[newID] = req.body.longURL;
-  const templateVars = { id: newID, longURL: urlDatabase[newID] };
-  // res.render("urls_show", templateVars);
   res.redirect('urls/' + newID);
 });
 
