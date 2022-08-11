@@ -22,7 +22,7 @@ const users = {
   },
 };
 
-const generateRandomString = function() {
+const generateRandomString = function () {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const charLength = characters.length;
@@ -30,6 +30,16 @@ const generateRandomString = function() {
     result += characters.charAt(Math.floor(Math.random() * charLength));
   }
   return result;
+};
+
+const emailExist = function (email) {
+  const usrs = Object.keys(users);
+  for (let u of usrs) {
+    if (users[u].email === email) {
+      return true;
+    }
+  }
+  return false;
 };
 
 app.set("view engine", "ejs");
@@ -52,20 +62,26 @@ app.get("/urls", (req, res) => {
 
 app.get("/register", (req, res) => {
   const user = users[req.cookies["user_id"]];
-  const templateVars = {user: user};
+  const templateVars = { user: user };
   res.render("urls_registration", templateVars);
 });
 
 app.post("/register", (req, res) => {
-  const newID = generateRandomString();
-  const user = {
-    id: newID,
-    email: req.body.email,
-    password: req.body.password
-  };
-  users[newID] = user;
-  res.cookie("user_id", newID);
-  res.redirect('/urls');
+  if (req.body.email === '') {
+    res.status(400).send('Empty email!');
+  } else if (emailExist(req.body.email)) {
+    res.status(400).send('Email already exists!');
+  } else {
+    const newID = generateRandomString();
+    const user = {
+      id: newID,
+      email: req.body.email,
+      password: req.body.password
+    };
+    users[newID] = user;
+    res.cookie("user_id", newID);
+    res.redirect('/urls');
+  }
 });
 
 app.post("/urls", (req, res) => {
