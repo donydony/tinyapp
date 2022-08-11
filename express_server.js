@@ -117,6 +117,12 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect('/urls');
 });
 
+app.get("/login", (req, res) => {
+  const user = users[req.cookies["user_id"]];
+  const templateVars = { user: user };
+  res.render("urls_login", templateVars);
+});
+
 app.post("/login", (req, res) => {
   const username = req.body.username;
   res.cookie("username", username);
@@ -128,8 +134,8 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  const username = req.body.username;
-  res.clearCookie("username", username);
+  const user = users[req.cookies["user_id"]];
+  res.clearCookie("user_id");
   res.redirect('/urls');
 });
 
