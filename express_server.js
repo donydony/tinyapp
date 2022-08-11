@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
+const e = require("express");
 const app = express();
 app.use(cookieParser());
 const PORT = 8080; // default port 8080
@@ -32,7 +33,7 @@ const generateRandomString = function () {
   return result;
 };
 
-const emailExist = function (email) {
+const emailExist = function(email) {
   const usrs = Object.keys(users);
   for (let u of usrs) {
     if (users[u].email === email) {
@@ -40,6 +41,16 @@ const emailExist = function (email) {
     }
   }
   return false;
+};
+
+const findEmail = function(email) {
+  const usrs = Object.keys(users);
+  for (let u of usrs) {
+    if (users[u].email === email) {
+      return users[u].id;
+    }
+  }
+  return undefined;
 };
 
 app.set("view engine", "ejs");
@@ -124,17 +135,15 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const username = req.body.username;
-  res.cookie("username", username);
-  const templateVars = {
-    username: username,
-    urls: urlDatabase
-  };
-  res.render("urls_index", templateVars);
+  if (emailExist(req.body.email) && users[findEmail(req.body.email)].password === req.body.password) {
+    res.cookie("user_id", findEmail(req.body.email));
+    res.redirect('/urls');
+  } else {
+    res.status(403).send('Email not found or password incorrect.');
+  }
 });
 
 app.post("/logout", (req, res) => {
-  const user = users[req.cookies["user_id"]];
   res.clearCookie("user_id");
   res.redirect('/urls');
 });
