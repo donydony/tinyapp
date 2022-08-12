@@ -1,6 +1,6 @@
 const express = require("express");
 const cookieParser = require('cookie-parser');
-const e = require("express");
+const bcrypt = require("bcryptjs");
 const app = express();
 app.use(cookieParser());
 const PORT = 8080; // default port 8080
@@ -39,7 +39,8 @@ const generateRandomString = function () {
   return result;
 };
 
-const emailExist = function (email) {
+const emailExist = function(email) {
+  //returns true if email exists in urlDatabase, false otherwise
   const usrs = Object.keys(users);
   for (let u of usrs) {
     if (users[u].email === email) {
@@ -49,7 +50,8 @@ const emailExist = function (email) {
   return false;
 };
 
-const findEmail = function (email) {
+const findEmail = function(email) {
+  //returns the id of the user object of a given email
   const usrs = Object.keys(users);
   for (let u of usrs) {
     if (users[u].email === email) {
@@ -107,7 +109,7 @@ app.post("/register", (req, res) => {
     const user = {
       id: newID,
       email: req.body.email,
-      password: req.body.password
+      password: bcrypt.hashSync(req.body.password, 10)
     };
     users[newID] = user;
     res.cookie("user_id", newID);
@@ -179,7 +181,7 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  if (emailExist(req.body.email) && users[findEmail(req.body.email)].password === req.body.password) {
+  if (emailExist(req.body.email) && bcrypt.compareSync(req.body.password, users[findEmail(req.body.email)].password)) {
     res.cookie("user_id", findEmail(req.body.email));
     res.redirect('/urls');
   } else {
