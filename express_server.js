@@ -85,11 +85,7 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
-});
-
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
+  res.redirect('/login');
 });
 
 app.get("/urls", (req, res) => {
@@ -199,11 +195,6 @@ app.post("/login", (req, res) => {
 app.post("/logout", (req, res) => {
   res.session = null;
   res.redirect('/urls');
-});
-
-app.get("/hello", (req, res) => {
-  const templateVars = { greeting: "Hello World!" };
-  res.render("hello_world", templateVars);
 });
 
 app.listen(PORT, () => {
