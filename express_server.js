@@ -125,8 +125,9 @@ app.post("/urls", (req, res) => {
     res.send('Must be logged in to shortened urls');
   } else {
     const newID = generateRandomString();
-    urlDatabase[newID].longURL = req.body.longURL;
-    urlDatabase[newID].userID = req.session.user_id;
+    urlDatabase[newID] = {};
+    urlDatabase[newID]['longURL'] = req.body.longURL;
+    urlDatabase[newID]['userID'] = req.session.user_id;
     res.redirect('urls/' + newID);
   }
 });
