@@ -1,8 +1,14 @@
 const express = require("express");
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const app = express();
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1'],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 const PORT = 8080; // default port 8080
 
 const urlDatabase = {
@@ -86,19 +92,19 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const user = users[req.cookies["user_id"]];
-  const templateVars = { urls: urlsForUser(req.cookies["user_id"]), user: user };
+  const user = users[req.session.user_id];
+  const templateVars = { urls: urlsForUser(req.session.user_id), user: user };
   res.render("urls_index", templateVars);
 });
 
 app.get("/register", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session.user_id];
   const templateVars = { user: user };
   res.render("urls_registration", templateVars);
 });
 
 app.post("/register", (req, res) => {
-  if (req.cookies["user_id"]) {
+  if (req.session.user_id) {
     res.redirect('/urls');
   } else if (req.body.email === '') {
     res.status(400).send('Empty email!');
@@ -112,34 +118,34 @@ app.post("/register", (req, res) => {
       password: bcrypt.hashSync(req.body.password, 10)
     };
     users[newID] = user;
-    res.cookie("user_id", newID);
+    req.session.user_id = newID;
     res.redirect('/urls');
   }
 });
 
 app.post("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.send('Must be logged in to shortened urls');
   } else {
     const newID = generateRandomString();
     urlDatabase[newID].longURL = req.body.longURL;
-    urlDatabase[newID].userID = req.cookies["user_id"];
+    urlDatabase[newID].userID = req.session.user_id;
     res.redirect('urls/' + newID);
   }
 });
 
 app.get("/urls/new", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.redirect('/login');
   } else {
-    const user = users[req.cookies["user_id"]];
+    const user = users[req.session.user_id];
     const templateVars = { user: user };
     res.render("urls_new", templateVars);
   }
 });
 
 app.post("/urls/:id", (req, res) => {
-  if (urlDatabase[req.params.id].userID === req.cookies["user_id"]) {
+  if (urlDatabase[req.params.id].userID === req.session.user_id) {
     urlDatabase[req.params.id].longURL = req.body.longURL;
     res.redirect('/urls');
   } else {
@@ -148,7 +154,7 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session.user_id];
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id].longURL, user: user };
   res.render("urls_show", templateVars);
 });
@@ -163,7 +169,7 @@ app.get("/u/:id", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  if (urlDatabase[req.params.id].userID === req.cookies["user_id"]) {
+  if (urlDatabase[req.params.id].userID === req.session.user_id) {
     delete urlDatabase[req.params.id];
     res.redirect('/urls');
   } else {
@@ -172,7 +178,7 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  if (req.cookies["user_id"]) {
+  if (req.session.user_id) {
     res.redirect('/urls');
   } else {
     const templateVars = { user: undefined };
@@ -182,7 +188,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login", (req, res) => {
   if (emailExist(req.body.email) && bcrypt.compareSync(req.body.password, users[findEmail(req.body.email)].password)) {
-    res.cookie("user_id", findEmail(req.body.email));
+    req.session.user_id = findEmail(req.body.email);
     res.redirect('/urls');
   } else {
     res.status(403).send('Email not found or password incorrect.');
@@ -190,7 +196,7 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  res.session = null;
   res.redirect('/urls');
 });
 
