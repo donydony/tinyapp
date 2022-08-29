@@ -1,3 +1,5 @@
+const { urlDatabase, users } = require('./database');
+
 const getUserByEmail = function(email, database) {
   // lookup magic...
   const usrs = Object.keys(database);

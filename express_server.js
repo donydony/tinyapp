@@ -1,7 +1,8 @@
 const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
-const { getUserByEmail } = require('./helpers');
+const { getUserByEmail, generateRandomString, emailExist, findEmail, urlsForUser } = require('./helpers');
+const { urlDatabase, users } = require('./database');
 const app = express();
 app.use(cookieSession({
   name: 'session',
@@ -11,74 +12,6 @@ app.use(cookieSession({
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
 const PORT = 8080; // default port 8080
-
-const urlDatabase = {
-  "b2xVn2": {
-    longURL: "http://www.lighthouselabs.ca",
-    userID: "userRandomID"
-  },
-  "9sm5xK": {
-    longURL: "http://www.google.ca",
-    userID: "user2RandomID"
-  }
-};
-
-const users = {
-  userRandomID: {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "purple-monkey-dinosaur",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher-funk",
-  },
-};
-
-const generateRandomString = function () {
-  let result = '';
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const charLength = characters.length;
-  for (let i = 0; i < 6; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charLength));
-  }
-  return result;
-};
-
-const emailExist = function(email) {
-  //returns true if email exists in urlDatabase, false otherwise
-  const usrs = Object.keys(users);
-  for (let u of usrs) {
-    if (users[u].email === email) {
-      return true;
-    }
-  }
-  return false;
-};
-
-const findEmail = function(email) {
-  //returns the id of the user object of a given email
-  const usrs = Object.keys(users);
-  for (let u of usrs) {
-    if (users[u].email === email) {
-      return users[u].id;
-    }
-  }
-  return undefined;
-};
-
-const urlsForUser = function(uid) {
-  //return an orbject of short urls as keys and long urls as values
-  const result = {};
-  const urls = Object.keys(urlDatabase);
-  for (let u of urls) {
-    if (urlDatabase[u].userID === uid) {
-      result[u] = urlDatabase[u].longURL;
-    }
-  }
-  return result;
-};
 
 app.set("view engine", "ejs");
 
@@ -105,6 +38,8 @@ app.post("/register", (req, res) => {
     res.redirect('/urls');
   } else if (req.body.email === '') {
     res.status(400).send('Empty email!');
+  } else if (req.body.password === '') {
+    res.status(400).send('Empty password!');
   } else if (emailExist(req.body.email)) {
     res.status(400).send('Email already exists!');
   } else {
@@ -128,6 +63,7 @@ app.post("/urls", (req, res) => {
     urlDatabase[newID] = {};
     urlDatabase[newID]['longURL'] = req.body.longURL;
     urlDatabase[newID]['userID'] = req.session.user_id;
+    console.log(urlDatabase);
     res.redirect('urls/' + newID);
   }
 });
@@ -153,13 +89,21 @@ app.post("/urls/:id", (req, res) => {
 
 app.get("/urls/:id", (req, res) => {
   const user = users[req.session.user_id];
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id].longURL, user: user };
-  res.render("urls_show", templateVars);
+  if (urlDatabase[req.params.id]) {
+    if (urlDatabase[req.params.id].userID === req.session.user_id) {
+      const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id].longURL, user: user };
+      res.render("urls_show", templateVars);
+    } else {
+      res.send('That url does not belong to you.');
+    }
+  } else {
+    res.send('That url does not exist.');
+  }
 });
 
 app.get("/u/:id", (req, res) => {
   if (urlDatabase[req.params.id]) {
-    const longURL = urlDatabase[req.params.id];
+    const longURL = urlDatabase[req.params.id].longURL;
     res.redirect(longURL);
   } else {
     res.send('This url does not exist!');
